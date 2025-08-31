@@ -327,6 +327,7 @@ def trigger_plan(payload: dict = Body(default={})):
 @app.post("/telegram/webhook")
 async def telegram_webhook(request: Request):
     import requests
+    import threading
 
     data = await request.json()
     message = data.get("message", {})
@@ -340,15 +341,20 @@ async def telegram_webhook(request: Request):
     db = SessionLocal()
     today = dt.date.today()
 
-    # SYNC command
+    # SYNC command (now runs in background)
     if text == "sync":
-        base_url = os.getenv("BASE_URL", "http://localhost:8000")  # Set BASE_URL in your Railway/Render env
-        try:
-            whoop_resp = requests.post(f"{base_url}/whoop/sync", timeout=30)
-            garmin_resp = requests.post(f"{base_url}/garmin/sync", timeout=30)
-            send_telegram_message("Data synced! Now send 'plan' to get your updated plan.")
-        except Exception as e:
-            send_telegram_message(f"Sync failed: {e}")
+        send_telegram_message("Sync started! I'll let you know when it's done.")
+
+        def do_sync():
+            base_url = os.getenv("BASE_URL", "https://ai-coach-production-6b35.up.railway.app")
+            try:
+                whoop_resp = requests.post(f"{base_url}/whoop/sync", timeout=60)
+                garmin_resp = requests.post(f"{base_url}/garmin/sync", timeout=60)
+                send_telegram_message("Data synced! Now send 'plan' to get your updated plan.")
+            except Exception as e:
+                send_telegram_message(f"Sync failed: {e}")
+
+        threading.Thread(target=do_sync).start()
         return {"ok": True}
 
     if text.startswith("log sleep"):
@@ -419,4 +425,3 @@ async def telegram_webhook(request: Request):
         send_telegram_message("Commands: sync, log sleep [hours], cycle phase [phase], plan, summary")
 
     return {"ok": True}
-
