@@ -344,8 +344,8 @@ async def telegram_webhook(request: Request):
     if text == "sync":
         base_url = os.getenv("BASE_URL", "http://localhost:8000")  # Set BASE_URL in your Railway/Render env
         try:
-            whoop_resp = requests.post(f"{base_url}/whoop/sync", timeout=30)
-            garmin_resp = requests.post(f"{base_url}/garmin/sync", timeout=30)
+            whoop_resp = requests.post(f"https://{base_url}/whoop/sync", timeout=30)
+            garmin_resp = requests.post(f"https://{base_url}/garmin/sync", timeout=30)
             send_telegram_message("Data synced! Now send 'plan' to get your updated plan.")
         except Exception as e:
             send_telegram_message(f"Sync failed: {e}")
